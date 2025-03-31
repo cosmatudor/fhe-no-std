@@ -106,27 +106,11 @@ impl Context {
     } else {
         let mut q = Vec::with_capacity(moduli.len());
         
-        // Calculul operatorilor NTT pentru fiecare modul
         for modulus in moduli {
             let qi = Modulus::new(*modulus)?;
                 q.push(qi);
         }
-        
-        // Calculul inverselor pentru CRT (Chinese Remainder Theorem)
-        let mut inv_last_qi_mod_qj = vec![];
-        let mut inv_last_qi_mod_qj_shoup = vec![];
-        
-        if !moduli.is_empty() {
-            let q_last = moduli.last().unwrap();
-            for qi in &q[..q.len().saturating_sub(1)] {
-                let inv = qi.inv(qi.reduce(*q_last)).unwrap();
-                inv_last_qi_mod_qj.push(inv);
-                inv_last_qi_mod_qj_shoup.push(qi.shoup(inv));
-            }
-        }
-        
-        // Pentru contextul recursiv, nu îl inițializăm în versiunea pentru contract
-        // pentru a economisi resurse
+
         let next_context = None;
         
         Ok(Self {
