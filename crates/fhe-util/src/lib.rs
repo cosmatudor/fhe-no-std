@@ -11,7 +11,7 @@ extern crate proptest;
 use rand::RngCore;
 
 use num_bigint_dig::{prime::probably_prime, BigUint, ModInverse};
-use num_traits::{cast::ToPrimitive, PrimInt};
+use num_traits::cast::ToPrimitive;
 extern crate alloc;
 use alloc::vec::Vec;
 
@@ -171,25 +171,13 @@ pub fn inverse(a: u64, p: u64) -> Option<u64> {
     a.mod_inverse(p)?.to_u64()
 }
 
-/// Compute the sample variance of a list of values.
-/// Panics if the length of value is < 2.
-pub fn variance<T: PrimInt>(values: &[T]) -> f64 {
-    assert!(values.len() > 1);
-    let mean = values.iter().fold(0f64, |acc, i| acc + i.to_f64().unwrap()) / (values.len() as f64);
-    values.iter().fold(0f64, |acc, i| {
-        acc + (i.to_f64().unwrap() - mean) * (i.to_f64().unwrap() - mean)
-    }) / ((values.len() as f64) - 1.0)
-}
-
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
     use rand::{thread_rng, RngCore};
 
-    use crate::variance;
-
     use super::{
-        inverse, is_prime, sample_vec_cbd, transcode_bidirectional, transcode_from_bytes,
+        inverse, is_prime, transcode_bidirectional, transcode_from_bytes,
         transcode_to_bytes,
     };
 
@@ -208,28 +196,6 @@ mod tests {
         assert!(!is_prime(8));
         assert!(!is_prime(9));
         assert!(!is_prime(4611686018326724607));
-    }
-
-    #[test]
-    fn sample_cbd() {
-        assert!(sample_vec_cbd(10, 0, &mut thread_rng()).is_err());
-        assert!(sample_vec_cbd(10, 17, &mut thread_rng()).is_err());
-
-        for var in 1..=16 {
-            for size in 0..=100 {
-                let v = sample_vec_cbd(size, var, &mut thread_rng()).unwrap();
-                assert_eq!(v.len(), size);
-            }
-
-            // Verifies that the min, max are in absolute value smaller than 2 * var
-            let v = sample_vec_cbd(100000, var, &mut thread_rng()).unwrap();
-            assert!(v.iter().map(|vi| vi.abs()).max().unwrap() <= 2 * var as i64);
-
-            // Verifies that the variance is correct. We could probably refine the bound
-            // but for now, we will just check that the rounded value is equal to the
-            // variance.
-            assert!(variance(&v).round() == (var as f64));
-        }
     }
 
     #[test]

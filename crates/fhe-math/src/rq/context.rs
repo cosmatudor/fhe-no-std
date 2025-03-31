@@ -98,9 +98,58 @@ impl Context {
         }
     }
 
+   pub fn new_for_contract(moduli: &[u64], degree: usize) -> Result<Self> {
+    if !degree.is_power_of_two() || degree < 8 {
+        Err(Error::Default(
+            "The degree is not a power of two larger or equal to 8".to_string(),
+        ))
+    } else {
+        let mut q = Vec::with_capacity(moduli.len());
+        
+        // Calculul operatorilor NTT pentru fiecare modul
+        for modulus in moduli {
+            let qi = Modulus::new(*modulus)?;
+                q.push(qi);
+        }
+        
+        // Calculul inverselor pentru CRT (Chinese Remainder Theorem)
+        let mut inv_last_qi_mod_qj = vec![];
+        let mut inv_last_qi_mod_qj_shoup = vec![];
+        
+        if !moduli.is_empty() {
+            let q_last = moduli.last().unwrap();
+            for qi in &q[..q.len().saturating_sub(1)] {
+                let inv = qi.inv(qi.reduce(*q_last)).unwrap();
+                inv_last_qi_mod_qj.push(inv);
+                inv_last_qi_mod_qj_shoup.push(qi.shoup(inv));
+            }
+        }
+        
+        // Pentru contextul recursiv, nu îl inițializăm în versiunea pentru contract
+        // pentru a economisi resurse
+        let next_context = None;
+        
+        Ok(Self {
+            moduli: moduli.to_owned().into_boxed_slice(),
+            q: q.into_boxed_slice(),
+            rns: Arc::new(RnsContext::new(moduli)?),
+            ops: Box::new([]),
+            degree,
+            bitrev: Box::new([]),
+            inv_last_qi_mod_qj: Box::new([]),
+            inv_last_qi_mod_qj_shoup: Box::new([]),
+            next_context,
+        })
+    }
+}
+
     /// Creates a context in an `Arc`.
     pub fn new_arc(moduli: &[u64], degree: usize) -> Result<Arc<Self>> {
         Self::new(moduli, degree).map(Arc::new)
+    }
+
+    pub fn new_arc_contract(moduli: &[u64], degree: usize) -> Result<Arc<Self>> {
+        Self::new_for_contract(moduli, degree).map(Arc::new)
     }
 
     /// Returns the modulus as a BigUint.

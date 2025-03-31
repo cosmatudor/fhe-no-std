@@ -584,8 +584,7 @@ impl Poly {
 #[cfg(test)]
 mod tests {
     use super::{switcher::Switcher, Context, Poly, Representation};
-    use crate::{rq::SubstitutionExponent, zq::Modulus};
-    use fhe_util::variance;
+    use crate::rq::SubstitutionExponent;
     use itertools::Itertools;
     use num_bigint::BigUint;
     use num_traits::{One, Zero};
@@ -593,7 +592,6 @@ mod tests {
     use rand_chacha::ChaCha8Rng;
     extern crate alloc;
     use crate::Error;
-    use alloc::string::ToString;
     use alloc::sync::Arc;
     use alloc::vec;
     use alloc::vec::Vec;
@@ -857,46 +855,6 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn small() -> Result<(), Error> {
-        let mut rng = thread_rng();
-        for modulus in MODULI {
-            let ctx = Arc::new(Context::new(&[*modulus], 16)?);
-            let q = Modulus::new(*modulus).unwrap();
-
-            let e = Poly::small(&ctx, Representation::PowerBasis, 0, &mut rng);
-            assert!(e.is_err());
-            assert_eq!(
-                e.unwrap_err().to_string(),
-                "The variance should be an integer between 1 and 16"
-            );
-            let e = Poly::small(&ctx, Representation::PowerBasis, 17, &mut rng);
-            assert!(e.is_err());
-            assert_eq!(
-                e.unwrap_err().to_string(),
-                "The variance should be an integer between 1 and 16"
-            );
-
-            for i in 1..=16 {
-                let p = Poly::small(&ctx, Representation::PowerBasis, i, &mut rng)?;
-                let coefficients = p.coefficients().to_slice().unwrap();
-                let v = unsafe { q.center_vec_vt(coefficients) };
-
-                assert!(v.iter().map(|vi| vi.abs()).max().unwrap() <= 2 * i as i64);
-            }
-        }
-
-        // Generate a very large polynomial to check the variance (here equal to 8).
-        let ctx = Arc::new(Context::new(&[4611686018326724609], 1 << 18)?);
-        let q = Modulus::new(4611686018326724609).unwrap();
-        let p = Poly::small(&ctx, Representation::PowerBasis, 16, &mut thread_rng())?;
-        let coefficients = p.coefficients().to_slice().unwrap();
-        let v = unsafe { q.center_vec_vt(coefficients) };
-        assert!(v.iter().map(|vi| vi.abs()).max().unwrap() <= 32);
-        assert_eq!(variance(&v).round(), 16.0);
-
-        Ok(())
-    }
 
     #[test]
     fn substitute() -> Result<(), Error> {

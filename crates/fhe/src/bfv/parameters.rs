@@ -297,6 +297,32 @@ impl BfvParametersBuilder {
         self.build().map(Arc::new)
     }
 
+    pub fn build_for_contract(&self) ->  Result<Arc<BfvParameters>> {
+        let moduli = self.ciphertext_moduli.clone();
+
+        let mut ctx = Vec::with_capacity(moduli.len());
+        for i in 0..moduli.len() {
+            let ctx_i = Context::new_arc_contract(&moduli[..moduli.len() - i], self.degree)?;
+            ctx.push(ctx_i);
+        }
+        
+        Ok(BfvParameters {
+            polynomial_degree: self.degree,
+            plaintext_modulus: self.plaintext,
+            moduli: moduli.into(),
+            moduli_sizes: vec![].into(),
+            variance: self.variance,
+            ctx,
+            op: None,
+            delta: vec![].into(),
+            q_mod_t: vec![].into(),
+            scalers: vec![].into(),
+            plaintext: Modulus::new(2).unwrap(),
+            mul_params: vec![].into(),
+            matrix_reps_index_map: vec![].into(),
+        }).map(Arc::new)
+    }
+
     /// Build a new `BfvParameters`.
     pub fn build(&self) -> Result<BfvParameters> {
         // Check that the degree is a power of 2 (and large enough).

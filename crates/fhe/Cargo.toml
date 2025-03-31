@@ -64,12 +64,3 @@ harness = false
 [[bench]]
 name = "bfv_rgsw"
 harness = false
-
-[[example]]
-name = "mulpir"
-
-[[example]]
-name = "sealpir"
-
-[[example]]
-name = "voting"
